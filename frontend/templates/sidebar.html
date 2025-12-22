@@ -1,68 +1,59 @@
-<!-- ============================= -->
-<!-- 사이드바 (include 전용 컴포넌트) -->
-<!-- ⚠️ 절대 extends / block 사용 금지 -->
-<!-- ============================= -->
-
 <aside
   class="fixed left-0 top-0 w-64 h-screen
          bg-slate-900 border-r border-slate-800
          text-slate-200"
 >
-  <!-- ============================= -->
-  <!-- 로고 / 서비스 이름 영역 -->
-  <!-- ============================= -->
   <div class="px-4 py-6 flex items-center gap-3 border-b border-slate-800">
-  <span class="text-2xl">🛡</span>
-  <div class="leading-tight">
-    <div class="text-lg font-extrabold">YouTube</div>
-    <div class="text-sm text-slate-400">Comment Filter</div>
+    <span class="text-2xl">🛡</span>
+    <div class="leading-tight">
+      <div class="text-lg font-extrabold">YouTube</div>
+      <div class="text-sm text-slate-400">Comment Filter</div>
+    </div>
   </div>
-</div>
 
-  <!-- ============================= -->
-  <!-- 네비게이션 메뉴 -->
-  <!-- ============================= -->
   <nav class="px-4 space-y-2">
 
-    <!-- 실시간 댓글 관제 -->
     <a
-      href="/"
+      href="{{ url_for('api.public_monitor') }}"
       class="block px-4 py-2 rounded-lg
              hover:bg-slate-800 transition"
     >
       실시간 관제
     </a>
 
-    <!-- 관리자 대시보드 -->
     <a
-      href="/admin/dashboard"
+      href="{{ url_for('api.admin_dashboard') }}"
       class="block px-4 py-2 rounded-lg
              hover:bg-slate-800 transition"
     >
       관리자 대시보드
     </a>
 
-    <!-- 블랙리스트 관리 -->
     <a
-      href="/admin/blacklist"
+      href="{{ url_for('api.admin_blacklist') }}"
       class="block px-4 py-2 rounded-lg
              hover:bg-slate-800 transition"
     >
       블랙리스트
     </a>
+  </nav>
 
-    <!-- ============================= -->
-  <!-- 하단: 로그인 버튼 -->
-  <!-- ============================= -->
-  <div class="px-4 py-4">
+
+  <div
+    class="absolute bottom-0 left-0 w-full
+           px-4 py-4
+           bg-slate-900
+           border-t border-slate-800"
+  >
     <a
-      href="/admin/login"
+      href="{{ url_for('api.admin_login') }}"
       id="admin-login-btn"
-      class="block text-center px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
+      class="block text-center px-4 py-2
+             bg-slate-800 rounded-lg
+             hover:bg-slate-700 transition"
     >
       🔒 관리자 로그인
     </a>
   </div>
-
-  </nav>
+  
 </aside>

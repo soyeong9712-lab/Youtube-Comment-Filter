@@ -2,50 +2,151 @@
 
 {% block content %}
 
-<h1 class="text-3xl font-extrabold mb-10">
+<h1 class="text-3xl font-extrabold mb-10 text-white">
   관리자 대시보드
 </h1>
 
 <div class="grid grid-cols-4 gap-6 mb-12">
-  <div class="stat-card">
-    <p class="stat-title">총 댓글</p>
-    <p id="total-count" class="stat-number">-</p>
+  <div class="stat-card bg-slate-900 p-6 rounded-2xl border border-slate-800">
+    <p class="text-slate-400 text-sm mb-2">총 댓글</p>
+    <p id="total-count" class="text-3xl font-bold text-white">-</p>
   </div>
 
-  <div class="stat-card">
-    <p class="stat-title">정상</p>
-    <p id="normal-count" class="stat-number text-emerald-400">-</p>
+  <div class="stat-card bg-slate-900 p-6 rounded-2xl border border-slate-800">
+    <p class="text-slate-400 text-sm mb-2">정상</p>
+    <p id="normal-count" class="text-3xl font-bold text-emerald-400">-</p>
   </div>
 
-  <div class="stat-card">
-    <p class="stat-title">욕설</p>
-    <p id="abuse-count" class="stat-number text-rose-400">-</p>
+  <div class="stat-card bg-slate-900 p-6 rounded-2xl border border-slate-800">
+    <p class="text-slate-400 text-sm mb-2">욕설</p>
+    <p id="abuse-count" class="text-3xl font-bold text-rose-400">-</p>
   </div>
 
-  <div class="stat-card">
-    <p class="stat-title">광고 / 스팸</p>
-    <p id="spam-count" class="stat-number text-amber-400">-</p>
+  <div class="stat-card bg-slate-900 p-6 rounded-2xl border border-slate-800">
+    <p class="text-slate-400 text-sm mb-2">광고 / 스팸</p>
+    <p id="spam-count" class="text-3xl font-bold text-amber-400">-</p>
   </div>
 </div>
 
-<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-  <h2 class="font-bold mb-4">댓글 분류 비율</h2>
-  <canvas id="categoryChart" height="120"></canvas>
+<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-10">
+  <h2 class="font-bold mb-4 text-white">댓글 분류 비율</h2>
+  <div style="height: 300px; position: relative;">
+    <canvas id="categoryChart"></canvas>
+  </div>
 </div>
 
 <div class="mt-10 flex gap-4">
   <input
     id="youtube-url"
-    class="flex-1 p-4 rounded-xl bg-slate-900 border border-slate-700"
-    placeholder="유튜브 영상 URL"
+    class="flex-1 p-4 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    placeholder="유튜브 영상 URL을 입력하세요"
   />
 
   <button
-    onclick="loadDashboard()"
-    class="px-6 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"
+    id="analyze-btn"
+    onclick="handleAnalyze()"
+    class="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all"
   >
-    분석
+    분석 시작
   </button>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let categoryChart = null;
+
+// 페이지 로드 시 실행
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("페이지 로드 완료 - 통계 데이터를 불러옵니다.");
+    loadDashboardStats();
+});
+
+// 분석 버튼 클릭 시 실행
+async function handleAnalyze() {
+    const urlInput = document.getElementById('youtube-url');
+    const btn = document.getElementById('analyze-btn');
+    const url = urlInput.value.trim();
+
+    if (!url) {
+        alert("유튜브 URL을 입력해주세요!");
+        return;
+    }
+
+    // 버튼 상태 변경
+    btn.innerText = "분석 중...";
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
+    try {
+        const response = await fetch(`/api/comments?url=${encodeURIComponent(url)}`);
+        const result = await response.json();
+
+        if (response.ok) {
+            alert("분석 및 DB 저장이 완료되었습니다!");
+            await loadDashboardStats(); // 통계 갱신
+            urlInput.value = ""; 
+        } else {
+            alert("에러: " + (result.error || "분석에 실패했습니다."));
+        }
+    } catch (error) {
+        console.error("통신 에러:", error);
+        alert("서버와 통신할 수 없습니다.");
+    } finally {
+        btn.innerText = "분석 시작";
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    }
+}
+
+// DB 통계 가져오기
+async function loadDashboardStats() {
+    try {
+        const response = await fetch('/api/dashboard/stats');
+        const data = await response.json();
+
+        // 숫자 카드 채우기
+        document.getElementById('total-count').innerText = (data.total || 0).toLocaleString();
+        document.getElementById('normal-count').innerText = (data.normal || 0).toLocaleString();
+        document.getElementById('abuse-count').innerText = (data.abuse || 0).toLocaleString();
+        document.getElementById('spam-count').innerText = (data.spam || 0).toLocaleString();
+
+        // 차트 그리기
+        updateChart(data);
+    } catch (error) {
+        console.error("데이터 로드 실패:", error);
+    }
+}
+
+// 차트 업데이트 함수
+function updateChart(data) {
+    const ctx = document.getElementById('categoryChart').getContext('2d');
+    
+    const chartData = {
+        labels: ['정상', '욕설/위험', '광고/스팸'],
+        datasets: [{
+            data: [data.normal || 0, data.abuse || 0, data.spam || 0],
+            backgroundColor: ['#10b981', '#fb7185', '#fbbf24'],
+            borderWidth: 0
+        }]
+    };
+
+    if (categoryChart) {
+        categoryChart.data = chartData;
+        categoryChart.update();
+    } else {
+        categoryChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#cbd5e1' } }
+                }
+            }
+        });
+    }
+}
+</script>
 
 {% endblock %}

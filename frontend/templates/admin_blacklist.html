@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="flex justify-between items-center mb-10">
+  <h1 class="text-3xl font-black text-slate-900 tracking-tight">지능형 블랙리스트</h1>
+  <div class="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-5 py-3 rounded-2xl shadow-sm border border-slate-100">
+    <svg width="14" height="14" class="text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+    AI 행동 분석 활성됨
+  </div>
+</div>
+
+<div class="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-sm">
+  <table class="w-full text-left border-collapse">
+    <thead class="bg-slate-50 border-b border-slate-100 font-black text-[11px] text-slate-400 uppercase tracking-widest">
+      <tr>
+        <th class="px-10 py-6">사용자 정보</th>
+        <th class="px-10 py-6 text-center">주요 감지 사유</th>
+        <th class="px-10 py-6">차단 등록 일시</th>
+        <th class="px-10 py-6 text-right">관리 액션</th>
+      </tr>
+    </thead>
+    
+    <tbody id="blacklist-table-body" class="divide-y divide-slate-50">
+      {% if blacklist_data and blacklist_data|length > 0 %}
+        {% for item in blacklist_data %}
+        <tr 
+          data-author-id="{{ item.authorId }}" 
+          class="hover:bg-blue-50/50 cursor-pointer transition-colors group blacklist-row"
+          onclick="showTrollProfile({{ item|tojson }})"
+        >
+          <td class="px-10 py-7">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-xs font-black text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                {{ item.authorName[0] }}
+              </div>
+              <span class="font-bold text-slate-900">{{ item.authorName }}</span>
+            </div>
+          </td>
+          <td class="px-10 py-7 text-center">
+            <span class="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black border border-rose-100 uppercase tracking-wider">{{ item.reason }}</span>
+          </td>
+          <td class="px-10 py-7 text-xs font-medium text-slate-400 font-mono tracking-tighter">{{ item.addedAt }}</td>
+          <td class="px-10 py-7 text-right">
+            <button 
+              onclick="event.stopPropagation(); removeBlacklistEntry('{{ item.authorId }}');" 
+              class="px-5 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-black hover:bg-rose-500 hover:text-white transition-all shadow-sm group-hover:shadow-rose-200"
+            >
+              차단 해제
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="4" class="px-10 py-20 text-center text-slate-400 font-bold italic">차단된 사용자가 없습니다.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div id="troll-profile-panel" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+  <div class="bg-white rounded-2xl p-8 shadow-2xl w-96">
+    <h3 class="text-xl font-bold mb-4">트롤 프로필</h3>
+    <p id="panel-troll-name" class="mb-2">사용자 이름: N/A</p>
+    <p id="panel-troll-reason" class="mb-4">주요 사유: N/A</p>
+    <button onclick="hideTrollProfilePanel()" class="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">닫기</button>
+  </div>
+</div>
+
+<script>
+  let currentlySelectedTroll = null;
+  const profilePanel = document.getElementById('troll-profile-panel');
+  const panelName = document.getElementById('panel-troll-name');
+  const panelReason = document.getElementById('panel-troll-reason');
+
+  /**
+   * 차단 해제 버튼 클릭 시 호출되며, 백엔드 API를 호출하고 페이지를 새로고침합니다.
+   */
+  function removeBlacklistEntry(id) {
+    if (confirm(`${id} 사용자를 차단 해제하시겠습니까?`)) {
+      // 백엔드 API 호출
+      fetch(`/api/blacklist/remove/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('차단 해제 완료:', data);
+        // 페이지 새로고침
+        location.reload();
+      })
+      .catch(error => {
+        console.error('차단 해제 오류:', error);
+        alert('차단 해제에 실패했습니다.');
+      });
+    }
+  }
+
+  /**
+   * 특정 트롤의 상세 프로필 패널을 표시합니다.
+   */
+  function showTrollProfile(troll) {
+    currentlySelectedTroll = troll;
+    
+    panelName.textContent = `사용자 이름: ${troll.authorName}`;
+    panelReason.textContent = `주요 사유: ${troll.reason}`;
+    
+    profilePanel.classList.remove('hidden');
+    profilePanel.classList.add('flex');
+  }
+
+  /**
+   * 프로필 패널을 닫고 현재 선택 상태를 초기화합니다.
+   */
+  function hideTrollProfilePanel() {
+    currentlySelectedTroll = null;
+    profilePanel.classList.add('hidden');
+    profilePanel.classList.remove('flex');
+  }
+</script>
+
+{% endblock %}
